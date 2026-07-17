@@ -46,12 +46,16 @@ Python 3.12, two dependencies, no bot framework — the bot only ever calls
 
 ## Run
 
+On the server it runs under systemd — see [deploy/prices-bot.service](deploy/prices-bot.service),
+which carries the full install sequence in its header:
+
 ```bash
-docker compose up --build -d
-docker compose logs -f
+systemctl status prices-bot
+journalctl -u prices-bot -f
 ```
 
-Without Docker, see [deploy/prices-bot.service](deploy/prices-bot.service).
+A [Dockerfile](Dockerfile) and [docker-compose.yml](docker-compose.yml) are here too
+if you ever move it to a host that prefers containers.
 
 Locally, to iterate:
 

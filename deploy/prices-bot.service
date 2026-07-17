@@ -1,29 +1,32 @@
-# Alternative to docker-compose, for running straight on the VPS.
+# Needs Python 3.11+ (asyncio.timeout). Ubuntu 22.04's system python3 is 3.10,
+# where this installs and imports fine and then fails on the first tick — so name
+# the version explicitly if the host is older than 24.04.
 #
-# Needs Python 3.11+. Ubuntu 22.04's system python3 is 3.10, where this installs
-# and imports fine and then fails on the first tick — so name the version.
-#
-#   sudo useradd --system --home /opt/prices_bot bot
-#   sudo cp -r . /opt/prices_bot && cd /opt/prices_bot
-#   sudo python3.12 -m venv .venv && sudo .venv/bin/pip install -r requirements.txt
-#   sudo chown -R bot:bot /opt/prices_bot && sudo chmod 600 /opt/prices_bot/.env
-#   sudo cp deploy/prices-bot.service /etc/systemd/system/
-#   sudo systemctl enable --now prices-bot
+#   cd /home/viltrumlik
+#   git clone https://github.com/Viltrumlik/prices_bot.git
+#   cd prices_bot
+#   python3 -m venv venv && venv/bin/pip install -r requirements.txt
+#   cp .env.example .env && "$EDITOR" .env       # BOT_TOKEN + CHAT_ID
+#   chmod 600 .env
+#   chown -R guts:guts /home/viltrumlik/prices_bot
+#   cp deploy/prices-bot.service /etc/systemd/system/
+#   systemctl daemon-reload && systemctl enable --now prices-bot
 #   journalctl -u prices-bot -f
 
 [Unit]
-Description=Telegram BTC/TON price bot
+Description=Prices Bot — BTC and TON (Gram) prices to a Telegram channel
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
-User=bot
-WorkingDirectory=/opt/prices_bot
-EnvironmentFile=/opt/prices_bot/.env
-ExecStart=/opt/prices_bot/.venv/bin/python -u bot.py
+User=guts
+Group=guts
+WorkingDirectory=/home/viltrumlik/prices_bot
+ExecStart=/home/viltrumlik/prices_bot/venv/bin/python /home/viltrumlik/prices_bot/bot.py
 Restart=always
 RestartSec=10
+# .env in WorkingDirectory is loaded by python-dotenv at startup.
 
 [Install]
 WantedBy=multi-user.target
