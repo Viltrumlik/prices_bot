@@ -1,0 +1,12 @@
+# Keep secrets out of the image: `COPY . .` would otherwise bake .env into a
+# layer, where it survives even if a later layer deletes it.
+.env
+.env.*
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.git/
+.gitignore
+deploy/
+README.md

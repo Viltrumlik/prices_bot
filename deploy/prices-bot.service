@@ -1,0 +1,29 @@
+# Alternative to docker-compose, for running straight on the VPS.
+#
+# Needs Python 3.11+. Ubuntu 22.04's system python3 is 3.10, where this installs
+# and imports fine and then fails on the first tick — so name the version.
+#
+#   sudo useradd --system --home /opt/prices_bot bot
+#   sudo cp -r . /opt/prices_bot && cd /opt/prices_bot
+#   sudo python3.12 -m venv .venv && sudo .venv/bin/pip install -r requirements.txt
+#   sudo chown -R bot:bot /opt/prices_bot && sudo chmod 600 /opt/prices_bot/.env
+#   sudo cp deploy/prices-bot.service /etc/systemd/system/
+#   sudo systemctl enable --now prices-bot
+#   journalctl -u prices-bot -f
+
+[Unit]
+Description=Telegram BTC/TON price bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=bot
+WorkingDirectory=/opt/prices_bot
+EnvironmentFile=/opt/prices_bot/.env
+ExecStart=/opt/prices_bot/.venv/bin/python -u bot.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
