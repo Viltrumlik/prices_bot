@@ -5,6 +5,26 @@ Posts Bitcoin and TON (Gram) prices to a Telegram channel every 3 minutes.
 Python 3.12, two dependencies, no bot framework — the bot only ever calls
 `sendMessage`, so there are no inbound updates to route.
 
+## Features
+
+- Posts BTC and TON (Gram) prices with their percent change to one channel on a
+  fixed interval (`POLL_SECONDS`, default 180 s).
+- Three independent price providers — Binance, CoinGecko, Kraken — tried in
+  order, each with its own validation (halted pairs, missing ids, stale or
+  implausible prices, sudden jumps).
+- Never posts a stale price or `$0.00`: a tick with no valid data is skipped.
+- Optional quiet mode (`MIN_CHANGE_PCT`) that only posts after a real move.
+- Watchdog that exits the process when nothing has succeeded for
+  `WATCHDOG_SECONDS`, so systemd or Docker restarts it.
+- Bot token redacted from every log line.
+
+## Tech stack
+
+- Python 3.11+ (3.12 in the Docker image), `asyncio`
+- [httpx](https://www.python-httpx.org/) for the Telegram Bot API and price APIs
+- [python-dotenv](https://pypi.org/project/python-dotenv/) for configuration
+- systemd unit and Docker / Docker Compose files for deployment
+
 ## Setup
 
 1. **Create the bot.** Telegram → [@BotFather](https://t.me/BotFather) → `/newbot`
@@ -55,7 +75,12 @@ journalctl -u prices-bot -f
 ```
 
 A [Dockerfile](Dockerfile) and [docker-compose.yml](docker-compose.yml) are here too
-if you ever move it to a host that prefers containers.
+if you ever move it to a host that prefers containers. With `.env` filled in:
+
+```bash
+docker compose up -d --build
+docker compose logs -f
+```
 
 Locally, to iterate:
 
@@ -110,3 +135,31 @@ The one worth knowing about: **`MIN_CHANGE_PCT`**. It ships at `0`, meaning ever
 tick posts — 480 messages a day, and 480 notifications for every subscriber. Raise
 it (say `0.5`) and the bot only posts when a coin has actually moved that far
 since its last post.
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `BOT_TOKEN` | — (required) | Token from @BotFather |
+| `CHAT_ID` | — (required) | Numeric channel id, e.g. `-1001234567890` |
+| `POLL_SECONDS` | `180` | Seconds between posts |
+| `WATCHDOG_SECONDS` | `1800` | Exit if no tick succeeded for this long (`0` disables; otherwise at least 2 × `POLL_SECONDS`) |
+| `MIN_CHANGE_PCT` | `0` | Only post when a coin moved at least this many percent since the last post |
+| `STALE_AFTER` | `300` | Reject provider data older than this many seconds |
+| `MAX_JUMP_PCT` | `20` | Reject a provider whose price jumped more than this since the previous tick |
+
+## Project structure
+
+```
+bot.py                    entry point: main loop, watchdog, signal handling, log redaction
+prices.py                 Binance / CoinGecko / Kraken providers and validation
+render.py                 HTML message formatting
+tg.py                     Telegram sendMessage with retry and error classification
+config.py                 settings read from the environment / .env
+.env.example              configuration template
+Dockerfile                container image
+docker-compose.yml        container deployment
+deploy/prices-bot.service systemd unit (install steps in its header)
+```
+
+## License
+
+Released under the [MIT License](LICENSE).
